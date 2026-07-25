@@ -467,7 +467,7 @@ function renderField(def) {
   return wrap;
 }
 
-function buildInputElement(def, isUnlocked) {
+function getFieldValue(def) {
 
 let value = "";
 
@@ -555,6 +555,26 @@ break;
 }
 
 
+return value;
+
+}
+
+function getFieldDisplayValue(def) {
+  const value = getFieldValue(def);
+
+  if (def.type === "select" && def.options) {
+    const match = def.options.find((opt) => opt.value === value);
+    if (match) return match.label;
+  }
+
+  return value;
+}
+
+function buildInputElement(def, isUnlocked) {
+
+const value = getFieldValue(def);
+
+
 
 let el;
 
@@ -620,6 +640,8 @@ function initRequestModal() {
     overlay.hidden = true;
     state.pendingRequestField = null;
     document.getElementById("requestReason").value = "";
+    document.getElementById("requestNewValue").value = "";
+    document.getElementById("requestAttachment").value = "";
   };
 
   document.getElementById("requestModalClose").addEventListener("click", close);
@@ -637,7 +659,23 @@ function initRequestModal() {
       const field = state.pendingRequestField;
       if (!field) return;
 
+      const newValue = document
+        .getElementById("requestNewValue")
+        .value.trim();
       const reason = document.getElementById("requestReason").value.trim();
+      const attachment =
+        document.getElementById("requestAttachment").files[0] || null;
+
+      if (!newValue) {
+        showToast("من فضلك اكتبي التعديل الصحيح المطلوب", "error");
+        return;
+      }
+
+      if (!reason) {
+        showToast("من فضلك اكتبي سبب التعديل", "error");
+        return;
+      }
+
       const submitBtn = document.getElementById("submitRequestBtn");
       submitBtn.disabled = true;
 
@@ -646,7 +684,10 @@ function initRequestModal() {
           state.studentId,
           field.key,
           field.label,
+          field.currentValue,
+          newValue,
           reason,
+          attachment,
         );
         state.requests[field.key] = { status: "pending", reason };
         close();
@@ -661,23 +702,49 @@ function initRequestModal() {
 }
 
 function openRequestModal(fieldKey, fieldLabel) {
-  state.pendingRequestField = { key: fieldKey, label: fieldLabel };
+  const def = FIELD_DEFS.find((f) => f.key === fieldKey);
+  const currentValue = def ? getFieldDisplayValue(def) : "";
+
+  state.pendingRequestField = {
+    key: fieldKey,
+    label: fieldLabel,
+    currentValue,
+  };
+
   document.getElementById("requestFieldLabel").value = fieldLabel;
+  document.getElementById("requestCurrentValue").value = currentValue || "—";
+  document.getElementById("requestNewValue").value = "";
+  document.getElementById("requestReason").value = "";
+  document.getElementById("requestAttachment").value = "";
   document.getElementById("requestOverlay").hidden = false;
 }
 
-async function submitEditRequest(studentId, field, fieldLabel, reason) {
-  const payload = { studentId, field, fieldLabel, reason };
-
+async function submitEditRequest(
+  studentId,
+  field,
+  fieldLabel,
+  currentValue,
+  newValue,
+  reason,
+  attachment,
+) {
   if (DEMO_MODE) {
     await new Promise((resolve) => setTimeout(resolve, 350));
-    return payload;
+    return { studentId, field, fieldLabel, currentValue, newValue, reason };
   }
+
+  const formData = new FormData();
+  formData.append("studentId", studentId);
+  formData.append("field", field);
+  formData.append("fieldLabel", fieldLabel);
+  formData.append("currentValue", currentValue ?? "");
+  formData.append("newValue", newValue);
+  formData.append("reason", reason);
+  if (attachment) formData.append("attachment", attachment);
 
   const response = await fetch(EDIT_REQUESTS_API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: formData,
   });
 
   if (!response.ok) throw new Error("تعذر إرسال طلب التعديل");
