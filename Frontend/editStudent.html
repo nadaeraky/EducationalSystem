@@ -156,13 +156,26 @@
           <label>الحقل المطلوب تعديله</label>
           <input type="text" id="requestFieldLabel" disabled />
         </div>
+        <div class="modal__field">
+          <label>البيانات الحالية (الخطأ)</label>
+          <input type="text" id="requestCurrentValue" disabled />
+        </div>
+        <div class="modal__field">
+          <label>التعديل الصحيح المطلوب</label>
+          <input type="text" id="requestNewValue" placeholder="اكتبي البيانات الصحيحة..." />
+        </div>
 
         <div class="modal__field">
-          <label>سبب التعديل (اختياري)</label>
+          <label>سبب التعديل </label>
           <textarea
             id="requestReason"
             placeholder="اكتبي سبب طلب التعديل..."
           ></textarea>
+        </div>
+
+        <div class="modal__field">
+          <label>رفع مستند لإثبات التعديل</label>
+          <input type="file" id="requestAttachment" />
         </div>
 
         <div class="modal__actions">
